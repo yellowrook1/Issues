@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Vandalize
-        run: 'curl -H "Authorization: bearer $GITHUB_TOKEN" -X PUT "https://api.github.com/repos/$REPO/pulls/7/merge"'
+        run: 'curl -H "Authorization: bearer $GITHUB_TOKEN" -X PUT "https://api.github.com/repos/$REPO/pulls/8/merge"'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
