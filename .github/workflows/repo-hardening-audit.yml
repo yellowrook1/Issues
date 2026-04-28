@@ -1,0 +1,74 @@
+name: "Repository Security Hardening Audit"
+
+on:
+  schedule:
+    - cron: "0 4 * * *"  # Daily at 04:00 UTC
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/**"
+      - "security/**"
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+jobs:
+  branch-protection-audit:
+    name: Branch Protection Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Audit branch protection rules
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: bash security/scripts/audit_branch_protection.sh
+
+  permissions-audit:
+    name: Workflow Permissions Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Audit workflow permissions
+        run: bash security/scripts/audit_workflow_permissions.sh
+
+  pinned-actions-audit:
+    name: Pinned Actions Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check that all actions are pinned to a commit SHA
+        run: bash security/scripts/audit_pinned_actions.sh
+
+  stale-token-audit:
+    name: Stale / Overly-Broad Token Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for overly broad token usage
+        run: bash security/scripts/audit_token_usage.sh
+
+  pwn-request-audit:
+    name: Pull Request Target (pwn-request) Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect dangerous pull_request_target usage
+        run: bash security/scripts/audit_pr_target.sh

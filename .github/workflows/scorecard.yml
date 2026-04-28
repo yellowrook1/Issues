@@ -1,0 +1,65 @@
+name: "OSSF Scorecard Supply Chain Security"
+
+on:
+  push:
+    branches: ["main", "master"]
+  schedule:
+    - cron: "0 5 * * 0"  # Weekly on Sunday at 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  # Required by Scorecard
+  security-events: write
+  # Required to upload artifacts
+  id-token: write
+  # Only read permissions for contents
+  contents: read
+  actions: read
+
+jobs:
+  scorecard:
+    name: Scorecard Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard Analysis
+        uses: ossf/scorecard-action@v2.4.0
+        with:
+          results_file: scorecard-results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload Scorecard results to code-scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: scorecard-results.sarif
+          category: scorecard
+
+  dependency-graph:
+    name: Submit Dependency Graph (SBOM)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Submit Dependency Snapshot
+        uses: actions/dependency-submission@v3
+
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run license compliance script
+        run: bash security/scripts/check_licenses.sh
