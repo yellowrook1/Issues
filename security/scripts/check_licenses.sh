@@ -79,9 +79,15 @@ check_npm_licenses() {
     return
   fi
 
-  if ! npm install --prefix "$(dirname "$pkg_json")" --ignore-scripts --silent 2>/dev/null; then
-    log_warn "npm install failed – skipping Node.js license check."
-    return
+  local pkg_dir
+  pkg_dir="$(dirname "$pkg_json")"
+
+  # Only install dependencies if node_modules is not already present
+  if [[ ! -d "$pkg_dir/node_modules" ]]; then
+    if ! npm install --prefix "$pkg_dir" --ignore-scripts --silent 2>/dev/null; then
+      log_warn "npm install failed – skipping Node.js license check."
+      return
+    fi
   fi
 
   # license-checker outputs CSV: module@version,license,repository,...

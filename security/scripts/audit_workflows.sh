@@ -44,7 +44,7 @@ for f in "${WORKFLOW_FILES[@]}"; do
     # Check whether the workflow checks out the PR head without a safe ref
     if grep -q "ref.*pull_request" "$f" || grep -q "github\.head_ref" "$f"; then
       log_issue "$(basename "$f"): uses pull_request_target AND checks out the PR head ref – high risk of pwn-request attack."
-    elif grep -q "pull_request_target" "$f"; then
+    else
       log_warn "$(basename "$f"): uses pull_request_target. Verify it does not expose secrets to untrusted code."
     fi
   fi
@@ -94,9 +94,15 @@ done
 log_section "CHECK 4: Secrets passed to third-party actions"
 
 for f in "${WORKFLOW_FILES[@]}"; do
-  # Find lines that pass secrets to actions not under the 'actions/' or 'github/' orgs
-  if grep -E "secrets\." "$f" | grep -qvE "uses:\s+(actions|github)\/"; then
-    log_warn "$(basename "$f"): secrets may be passed to a third-party action. Verify the action is trusted."
+  fname="$(basename "$f")"
+  # Identify third-party actions (not actions/ or github/) that appear in the
+  # same job context as a 'secrets.' reference.  We extract all 'uses:' orgs
+  # and warn if any non-first-party org also has secrets in the same file.
+  third_party_actions=$(grep -oE '^\s+uses:\s+[A-Za-z0-9_.-]+/' "$f" 2>/dev/null | \
+    grep -vE '(actions|github)/' | grep -c '.' || true)
+
+  if [[ "$third_party_actions" -gt 0 ]] && grep -q "secrets\." "$f"; then
+    log_warn "$fname: secrets are present and the file uses third-party action(s). Verify secrets are not inadvertently passed to untrusted actions."
   fi
 done
 

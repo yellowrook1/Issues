@@ -52,6 +52,12 @@ jobs:
 
       - name: Submit Dependency Snapshot
         uses: actions/dependency-submission@v3
+        # If your project uses a build system, configure the appropriate
+        # detector here, e.g. for Maven:
+        # with:
+        #   detector: mvn
+        # For projects without a build system (plain scripts/docs repos),
+        # the action will submit an empty snapshot which is safe to ignore.
 
   license-compliance:
     name: License Compliance Check

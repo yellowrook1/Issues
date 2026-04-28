@@ -49,8 +49,18 @@ for f in "${WORKFLOW_FILES[@]}"; do
     log_issue "$fname: GITHUB_TOKEN exposed in environment of a 'pull_request_target' triggered workflow – untrusted code may steal it."
   fi
 
-  # 3. Secrets exposed in run: blocks via echo
-  if grep -E '^\s+run:' "$f" | grep -qE 'echo.*secrets\.' 2>/dev/null; then
+  # 3. Secrets exposed in run: blocks via echo (handles inline and block-scalar run: values)
+  if python3 - "$f" <<'PYEOF' 2>/dev/null; then
+import sys, re
+with open(sys.argv[1]) as fh:
+    content = fh.read()
+# Match multi-line run blocks (|, >, or inline) and look for echo + secrets
+run_blocks = re.findall(r'run:\s*[|>]?\s*\n?((?:[ \t]+.*\n?)+)', content)
+for block in run_blocks:
+    if re.search(r'echo.*secrets\.', block):
+        sys.exit(0)  # found – exit 0 so the shell 'if' branch triggers
+sys.exit(1)
+PYEOF
     log_issue "$fname: secret value may be echoed in a 'run:' step – this will appear in logs."
   fi
 

@@ -103,7 +103,7 @@ log_info "Checking for high-entropy strings …"
 entropy_hits=$(grep -rniI \
   $(build_exclude_args) \
   -E "['\"][A-Za-z0-9+/=_-]{40,}['\"]" \
-  "$REPO_ROOT" 2>/dev/null | grep -v "node_modules" || true)
+  "$REPO_ROOT" 2>/dev/null || true)
 
 if [[ -n "$entropy_hits" ]]; then
   log_warn "Potential high-entropy strings found (manual review recommended):"

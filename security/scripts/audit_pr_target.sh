@@ -58,7 +58,7 @@ for f in "${WORKFLOW_FILES[@]}"; do
   # ── Risk 1: checkout of untrusted ref ──────────────────────────────────────
   # The danger is using github.event.pull_request.head.sha or github.head_ref
   # in the 'ref' parameter of actions/checkout.
-  if grep -E "ref:.*github\.(event\.pull_request\.head|head_ref)" "$f" | grep -q .; then
+  if grep -qE "ref:.*github\.(event\.pull_request\.head|head_ref)" "$f"; then
     log_issue "$fname: CRITICAL – checks out untrusted PR head ref inside pull_request_target. " \
               "This is the classic pwn-request vulnerability."
   fi

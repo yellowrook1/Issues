@@ -74,17 +74,33 @@ for f in "${WORKFLOW_FILES[@]}"; do
   done
 
   # 5. Jobs without explicit permissions (inheriting from workflow level)
+  # Use Python with a proper indentation-aware YAML job detection:
+  # jobs live under a top-level 'jobs:' key at exactly 2-space indent.
   jobs_without_perms=$(python3 - "$f" <<'PYEOF'
 import sys, re
 
 with open(sys.argv[1]) as fh:
     content = fh.read()
 
-# Very simple YAML job-block detection
-job_sections = re.findall(r'^  (\w[\w-]*):\n((?:    .*\n)*)', content, re.MULTILINE)
-for name, body in job_sections:
-    if 'permissions:' not in body and name not in ('strategy', 'env', 'defaults', 'outputs', 'needs', 'if', 'runs-on', 'steps'):
-        print(name)
+# Locate the jobs: block and then find immediate child keys (job IDs).
+# Job IDs appear at exactly 2-space indentation directly under 'jobs:'.
+jobs_block_match = re.search(r'^jobs:\n((?:(?:  .*)?\n)*)', content, re.MULTILINE)
+if not jobs_block_match:
+    sys.exit(0)
+
+jobs_block = jobs_block_match.group(1)
+
+# Split into per-job sections by detecting job-id lines (2-space key, not 4+)
+job_name_re = re.compile(r'^  ([a-zA-Z_][a-zA-Z0-9_-]*):', re.MULTILINE)
+job_matches = list(job_name_re.finditer(jobs_block))
+
+for i, m in enumerate(job_matches):
+    job_name = m.group(1)
+    start = m.start()
+    end = job_matches[i + 1].start() if i + 1 < len(job_matches) else len(jobs_block)
+    job_body = jobs_block[start:end]
+    if 'permissions:' not in job_body:
+        print(job_name)
 PYEOF
   )
 
